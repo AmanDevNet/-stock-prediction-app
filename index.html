@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Price Prediction - LSTM Model</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .prediction-form {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .results-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            text-align: center;
+        }
+
+        .results-header h2 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .current-price {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 30px;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .predictions-list {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .predictions-list h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .prediction-item {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .prediction-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .prediction-day {
+            font-weight: 600;
+            color: #667eea;
+            font-size: 1.1rem;
+        }
+
+        .prediction-price {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .available-stocks {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .available-stocks h3 {
+            color: #0066cc;
+            margin-bottom: 15px;
+        }
+
+        .stock-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .stock-tag {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .prediction-form {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📈 Stock Price Prediction</h1>
+            <p>AI-Powered LSTM Model for Stock Market Forecasting</p>
+        </div>
+
+        <div class="main-content">
+            <div class="prediction-form">
+                <h2 style="color: #333; margin-bottom: 25px; font-size: 1.5rem;">Make a Prediction</h2>
+                
+                <form id="predictionForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="symbol">Stock Symbol</label>
+                            <select id="symbol" name="symbol" class="form-control" required>
+                                <option value="">Select a stock</option>
+                                <option value="TSLA">TSLA - Tesla</option>
+                                <option value="AAPL">AAPL - Apple</option>
+                                <option value="GOOGL">GOOGL - Google</option>
+                                <option value="MSFT">MSFT - Microsoft</option>
+                                <option value="AMZN">AMZN - Amazon</option>
+                                <option value="META">META - Meta</option>
+                                <option value="NVDA">NVDA - NVIDIA</option>
+                                <option value="NFLX">NFLX - Netflix</option>
+                                <option value="AMD">AMD - Advanced Micro Devices</option>
+                                <option value="INTC">INTC - Intel</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="days">Prediction Days</label>
+                            <input type="number" id="days" name="days" min="1" max="30" value="10" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn" id="predictBtn">
+                        <span>🔮 Predict Stock Price</span>
+                    </button>
+                </form>
+
+                <div class="available-stocks">
+                    <h3>Available Stocks</h3>
+                    <div class="stock-tags">
+                        <span class="stock-tag">TSLA</span>
+                        <span class="stock-tag">AAPL</span>
+                        <span class="stock-tag">GOOGL</span>
+                        <span class="stock-tag">MSFT</span>
+                        <span class="stock-tag">AMZN</span>
+                        <span class="stock-tag">META</span>
+                        <span class="stock-tag">NVDA</span>
+                        <span class="stock-tag">NFLX</span>
+                        <span class="stock-tag">AMD</span>
+                        <span class="stock-tag">INTC</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing market data and generating predictions...</p>
+            </div>
+
+            <div class="error" id="error" style="display: none;"></div>
+
+            <div class="results" id="results">
+                <div class="results-header">
+                    <h2 id="resultsTitle">Stock Predictions</h2>
+                    <div class="current-price" id="currentPrice">Current Price: $0.00</div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="predictionChart"></canvas>
+                </div>
+                
+                <div class="predictions-list">
+                    <h3>📊 Detailed Predictions</h3>
+                    <div id="predictionsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chart = null;
+
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const symbol = document.getElementById('symbol').value;
+            const days = parseInt(document.getElementById('days').value);
+            
+            if (!symbol) {
+                showError('Please select a stock symbol');
+                return;
+            }
+            
+            if (days < 1 || days > 30) {
+                showError('Please enter a valid number of days (1-30)');
+                return;
+            }
+            
+            await makePrediction(symbol, days);
+        });
+
+        async function makePrediction(symbol, days) {
+            showLoading();
+            hideError();
+            hideResults();
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        symbol: symbol,
+                        days: days
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    showError(data.error || 'An error occurred while making the prediction');
+                }
+            } catch (error) {
+                showError('Failed to connect to the server. Please try again.');
+                console.error('Error:', error);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function displayResults(data) {
+            const resultsTitle = document.getElementById('resultsTitle');
+            const currentPrice = document.getElementById('currentPrice');
+            const predictionsList = document.getElementById('predictionsList');
+            
+            resultsTitle.textContent = `${data.symbol} Stock Predictions`;
+            currentPrice.textContent = `Current Price: $${data.current_price}`;
+            
+            // Clear previous predictions
+            predictionsList.innerHTML = '';
+            
+            // Add prediction items
+            data.predictions.forEach(pred => {
+                const item = document.createElement('div');
+                item.className = 'prediction-item';
+                item.innerHTML = `
+                    <div class="prediction-day">Day ${pred.day} (${pred.date})</div>
+                    <div class="prediction-price">$${pred.price}</div>
+                `;
+                predictionsList.appendChild(item);
+            });
+            
+            // Create chart
+            createChart(data);
+            
+            // Show results
+            showResults();
+        }
+
+        function createChart(data) {
+            const ctx = document.getElementById('predictionChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (chart) {
+                chart.destroy();
+            }
+            
+            const labels = data.predictions.map(pred => `Day ${pred.day}`);
+            const prices = data.predictions.map(pred => pred.price);
+            
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `${data.symbol} Price Prediction`,
+                        data: prices,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Price (USD)',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Prediction Days',
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 14,
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: `${data.symbol} Stock Price Prediction`,
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('predictBtn').disabled = true;
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('predictBtn').disabled = false;
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error').style.display = 'none';
+        }
+
+        function showResults() {
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function hideResults() {
+            document.getElementById('results').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
