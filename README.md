@@ -9,7 +9,6 @@
 - 🚀 Trained LSTM models for top companies (AAPL, TSLA, MSFT, etc.)
 - 🧠 Scaled time series data with `MinMaxScaler`
 - 🗃️ Automatic data caching and retry logic for API rate limits
-- 🌐 Web-based UI using Flask + HTML templates
 
 ---
 
