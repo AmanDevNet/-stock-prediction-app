@@ -36,6 +36,15 @@
 ├── train_stock.py # Model training script
 └── README.md
 
+Output :-
+![image](https://github.com/user-attachments/assets/919b2163-6497-4979-8fd2-77d054a49861)
+![image](https://github.com/user-attachments/assets/026b9797-fda2-4347-9757-f7812749e96a)
+![image](https://github.com/user-attachments/assets/90637148-727b-4ad8-9583-9713d3b30bb4)
+![image](https://github.com/user-attachments/assets/155dc338-da03-49bb-b3df-698bbf149913)
+![image](https://github.com/user-attachments/assets/7d06a202-e2c9-4cdb-b14d-4578becb82e7)
+
+
+
 ### 1. Clone the Repo
 
 ```bash
@@ -46,13 +55,9 @@ bash
 pip install -r requirements.txt
 3. Train the Models (First Time Only)
 bash
-Copy
-Edit
 python train_stock.py
 4. Run the App
 bash
-Copy
-Edit
 python app.py
 Visit: http://localhost:5000
 
